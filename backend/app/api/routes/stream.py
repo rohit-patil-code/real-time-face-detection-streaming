@@ -7,10 +7,13 @@ from app.core.config import settings
 router = APIRouter()
 
 @router.get("/stream")
-def stream_video(filename: str = Query(..., description="Name of the ingested video file")):
+def stream_video(
+    filename: str = Query(..., description="Name of the ingested video file"),
+    t: str = Query(None, description="Cache-busting timestamp")
+):
     """
     Stream a processed video using MJPEG.
-    Browser compatible endpoint: <img src="/api/v1/stream?filename=video.mp4" />
+    Browser compatible endpoint: <img src="/api/v1/stream?filename=video.mp4&t=123" />
     """
     video_path = settings.UPLOAD_DIR / filename
     

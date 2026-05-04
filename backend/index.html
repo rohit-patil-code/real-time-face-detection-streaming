@@ -5,15 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real-Time Face Detection Stream</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; margin-bottom: 20px; }
-        .stream-box { border: 2px dashed #bdc3c7; border-radius: 8px; margin-top: 20px; overflow: hidden; background: #000; min-height: 400px; display: flex; align-items: center; justify-content: center; color: white;}
-        img { max-width: 100%; display: block; margin: 0 auto; }
-        .controls { margin-top: 20px; display: flex; justify-content: center; gap: 10px; }
-        input[type="file"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 10px 20px; border: none; background: #3498db; color: white; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.3s; }
-        button:hover { background: #2980b9; }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            padding: 40px 20px; 
+            background-color: #f8f9fa; 
+            color: #343a40;
+            display: flex;
+            justify-content: center;
+        }
+        .container { 
+            width: 100%;
+            max-width: 800px; 
+            background: #ffffff; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+            text-align: center;
+        }
+        h1 { 
+            font-size: 24px; 
+            margin-bottom: 24px; 
+            color: #212529; 
+        }
+        .controls { 
+            display: flex; 
+            justify-content: center; 
+            gap: 15px; 
+            margin-bottom: 30px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        input[type="file"] { 
+            padding: 10px; 
+            border: 1px solid #dee2e6; 
+            border-radius: 6px; 
+            font-size: 14px;
+            background: #fff;
+        }
+        button { 
+            padding: 12px 24px; 
+            border: none; 
+            background: #0d6efd; 
+            color: white; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 15px; 
+            font-weight: 600; 
+            transition: background 0.2s ease, transform 0.1s ease; 
+        }
+        button:hover { 
+            background: #0b5ed7; 
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .stream-card { 
+            background: #000; 
+            border-radius: 10px; 
+            overflow: hidden; 
+            min-height: 450px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            position: relative;
+        }
+        .stream-card img { 
+            max-width: 100%; 
+            display: block; 
+            margin: 0 auto; 
+        }
+        .placeholder-text {
+            color: #adb5bd;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -21,48 +87,65 @@
         <h1>Real-Time Face Detection Stream</h1>
         <div class="controls">
             <input type="file" id="videoUpload" accept="video/mp4,video/avi">
-            <button onclick="uploadVideo()">Upload & Stream</button>
+            <button onclick="uploadAndStream()">Upload & Stream</button>
         </div>
-        <div class="stream-box" id="streamContainer">
-            <p style="color: #7f8c8d;">Upload a video to start streaming...</p>
+        <div class="stream-card" id="streamContainer">
+            <span class="placeholder-text">Upload a video to start streaming</span>
         </div>
     </div>
 
     <script>
-        async function uploadVideo() {
+        // Track the current uploaded filename so we can replay without re-uploading
+        let currentFilename = null;
+
+        async function uploadAndStream() {
             const fileInput = document.getElementById('videoUpload');
-            if (!fileInput.files.length) {
-                alert("Please select a video file first!");
-                return;
-            }
-
-            const file = fileInput.files[0];
-            const formData = new FormData();
-            formData.append('file', file);
-
             const streamContainer = document.getElementById('streamContainer');
-            streamContainer.innerHTML = "<p>Uploading and initializing model...</p>";
 
-            try {
-                const response = await fetch('/api/v1/ingest', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (data.status === "success") {
-                    const filename = file.name;
-                    streamContainer.innerHTML = `<img src="/api/v1/stream?filename=${encodeURIComponent(filename)}" alt="Video Stream">`;
-                } else {
-                    alert("Upload failed.");
-                    streamContainer.innerHTML = "<p>Upload Failed.</p>";
+            // If a file is selected, upload it
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const formData = new FormData();
+                formData.append('file', file);
+
+                streamContainer.innerHTML = '<span class="placeholder-text">Uploading and processing...</span>';
+
+                try {
+                    const response = await fetch('/api/v1/ingest', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === "success") {
+                        currentFilename = file.name;
+                        startStream(currentFilename);
+                    } else {
+                        alert("Upload failed: " + (data.detail || "Unknown error"));
+                        streamContainer.innerHTML = '<span class="placeholder-text">Upload Failed</span>';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("An error occurred during upload.");
+                    streamContainer.innerHTML = '<span class="placeholder-text">Error occurred</span>';
                 }
-            } catch (err) {
-                console.error(err);
-                alert("An error occurred during upload.");
-                streamContainer.innerHTML = "<p>Error occurred.</p>";
+            } else if (currentFilename) {
+                // If no new file is selected but we already uploaded one, just restart the stream
+                startStream(currentFilename);
+            } else {
+                alert("Please select a video file first!");
             }
+        }
+
+        function startStream(filename) {
+            const streamContainer = document.getElementById('streamContainer');
+            // Cache busting using a timestamp forces the browser to open a fresh connection
+            const timestamp = new Date().getTime();
+            const streamUrl = `/api/v1/stream?filename=${encodeURIComponent(filename)}&t=${timestamp}`;
+            
+            // Recreate the image element
+            streamContainer.innerHTML = `<img src="${streamUrl}" alt="Video Stream" onerror="this.parentElement.innerHTML='<span class=\\'placeholder-text\\'>Stream ended or failed</span>'">`;
         }
     </script>
 </body>
