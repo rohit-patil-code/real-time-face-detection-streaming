@@ -6,6 +6,12 @@ from fastapi import FastAPI
 from app.api.router import api_router
 from app.core.config import settings
 
+# Initialize Database tables
+from app.db.session import engine
+from app.db.base import Base
+from app.models.roi import ROI
+Base.metadata.create_all(bind=engine)
+
 def get_application() -> FastAPI:
     application = FastAPI(title=settings.PROJECT_NAME)
     
