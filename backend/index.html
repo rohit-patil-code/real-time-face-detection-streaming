@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Face Detection Stream</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; margin-bottom: 20px; }
+        .stream-box { border: 2px dashed #bdc3c7; border-radius: 8px; margin-top: 20px; overflow: hidden; background: #000; min-height: 400px; display: flex; align-items: center; justify-content: center; color: white;}
+        img { max-width: 100%; display: block; margin: 0 auto; }
+        .controls { margin-top: 20px; display: flex; justify-content: center; gap: 10px; }
+        input[type="file"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; border: none; background: #3498db; color: white; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.3s; }
+        button:hover { background: #2980b9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Real-Time Face Detection Stream</h1>
+        <div class="controls">
+            <input type="file" id="videoUpload" accept="video/mp4,video/avi">
+            <button onclick="uploadVideo()">Upload & Stream</button>
+        </div>
+        <div class="stream-box" id="streamContainer">
+            <p style="color: #7f8c8d;">Upload a video to start streaming...</p>
+        </div>
+    </div>
+
+    <script>
+        async function uploadVideo() {
+            const fileInput = document.getElementById('videoUpload');
+            if (!fileInput.files.length) {
+                alert("Please select a video file first!");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const streamContainer = document.getElementById('streamContainer');
+            streamContainer.innerHTML = "<p>Uploading and initializing model...</p>";
+
+            try {
+                const response = await fetch('/api/v1/ingest', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === "success") {
+                    const filename = file.name;
+                    streamContainer.innerHTML = `<img src="/api/v1/stream?filename=${encodeURIComponent(filename)}" alt="Video Stream">`;
+                } else {
+                    alert("Upload failed.");
+                    streamContainer.innerHTML = "<p>Upload Failed.</p>";
+                }
+            } catch (err) {
+                console.error(err);
+                alert("An error occurred during upload.");
+                streamContainer.innerHTML = "<p>Error occurred.</p>";
+            }
+        }
+    </script>
+</body>
+</html>

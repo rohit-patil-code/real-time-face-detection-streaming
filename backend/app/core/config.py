@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     UPLOAD_DIR: Path = Path("temp_uploads")
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/facedb"
+    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/facedb"
 
     class Config:
         env_file = ".env"
